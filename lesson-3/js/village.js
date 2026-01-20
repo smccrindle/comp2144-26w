@@ -43,7 +43,7 @@ const createScene = async function() {
     // STEP 6a: Reposition the box (which is now 1.5 units in height, so to sit on the ground, we need to raise y to 0.75)
     
     // STEP 6b: ...or with a vector object
-    box.position = new BABYLON.Vector3(0, 0.75, 0);
+    box.position = new BABYLON.Vector3(1, 0.75, 2);
     // STEP 7: Rotate the box (Babylon.JS uses radians - so convert if you wish)
     box.rotation.y = BABYLON.Tools.ToRadians(45);
     // STEP 11: Add a texture to the walls of the house (the box) (https://www.babylonjs-playground.com/textures/floor.png)
@@ -51,9 +51,17 @@ const createScene = async function() {
     // STEP 12a: Change the texture above to use an image with doors and windows instead
     
     // STEP 8a: Build a roof - using a cylinder mesh
-    
+    const roof = BABYLON.MeshBuilder.CreateCylinder("roof", {
+        diameter: 2.8,
+        height: 3.5,
+        tessellation: 3
+    });
     // STEP 8b: Scale, rotate, and position the new mesh object
-
+    roof.scaling.x = 0.75;
+    // roof.rotation.z = Math.PI / 2;
+    roof.rotation.z = BABYLON.Tools.ToRadians(90);
+    roof.rotation.y = BABYLON.Tools.ToRadians(-45);
+    roof.position = new BABYLON.Vector3(1, 2, 2);
     // STEP 10: Add a texture to the roof (https://assets.babylonjs.com/environments/roof.jpg)
 
     // STEP 13a: Let's combine the box and the roof meshes into one mesh called 'house'
