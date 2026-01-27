@@ -8,9 +8,9 @@ const createScene = async function() {
     const scene = new BABYLON.Scene(engine);
     
     // Add a camera and allow it to control the canvas
-    const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 15, new BABYLON.Vector3(0, 0, 0)); 
+    // const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 15, new BABYLON.Vector3(0, 0, 0)); 
     // Add Arc Rotate Camera
-    camera.attachControl(canvas, true);
+    // camera.attachControl(canvas, true);
     
     // Include a light
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
@@ -80,12 +80,19 @@ const createScene = async function() {
     roofMat.diffuseTexture = new BABYLON.Texture("https://assets.babylonjs.com/environments/roof.jpg");
     roof.material = roofMat;
     // STEP 13a: Let's combine the box and the roof meshes into one mesh called 'house'
-    
+    // const house = BABYLON.Mesh.MergeMeshes([box, roof]);
     // STEP 13b: Yikes - now the two meshes share the same material - we must allow multiple materials within the same mesh
-    
+    const house = BABYLON.Mesh.MergeMeshes([box, roof], true, false, null, false, true);
 
-    // STEP 14: Create another instance of the house object and place it elsewhere on the ground
-    
+    // STEP 14a: Create another instance of the house object and place it elsewhere on the ground
+    let house2 = house.createInstance("house2");
+    house2.position = new BABYLON.Vector3(0, 0, -4);
+    house2.rotation.y = BABYLON.Tools.ToRadians(45);
+
+    // STEP 14b: How about a third house?
+    let house3 = house.createInstance("house3");
+    house3.position = new BABYLON.Vector3(-3, 0, 1);
+    house3.rotation.y = BABYLON.Tools.ToRadians(-45);
 
     // STEP 4: Add some ambient sounds ("Chirping Birds Ambience" by Alex from Pixabay - https://pixabay.com/sound-effects/search/birds%20chirping/)
     async function initAudio() {
@@ -100,10 +107,10 @@ const createScene = async function() {
     initAudio();
     // STEP 15a: Set the above createScene() function to async (important, or this will not work)
     // STEP 15b: Create the xrHelper to allow the visitor to choose WebXR if they are able and they'd like
-    // const xr = await scene.createDefaultXRExperienceAsync({
-    //     floorMeshes: [ground],
-    //     optionalFeatures: true
-    // });
+    const xr = await scene.createDefaultXRExperienceAsync({
+        floorMeshes: [ground],
+        optionalFeatures: true
+    });
 
     // Return the scene
     return scene;
