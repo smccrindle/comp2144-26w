@@ -6,7 +6,8 @@ const engine = new BABYLON.Engine(canvas, true);
 const createScene = async function() {
     // Create a new BABYLON scene, passing in the engine as an argument
     const scene = new BABYLON.Scene(engine);
-    
+    // Add the inspector
+    scene.debugLayer.show();
     // Add a camera and allow it to control the canvas
     const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 15, new BABYLON.Vector3(0, 0, 0)); // Add Arc Rotate Camera
     camera.attachControl(canvas, true);
@@ -143,6 +144,20 @@ const createScene = async function() {
         return null;
     });
 
+    // LAB B
+        const basket = BABYLON.SceneLoader.ImportMeshAsync("", "./meshes/", "basket.glb").then((result) => {
+        // Do this stuff after the mesh has loaded
+        const basket = result.meshes[0];
+        // wheelMesh.position = new BABYLON.Vector3(0, 0, 0);
+        basket.scaling = new BABYLON.Vector3(1, 1, 1);
+    }).catch((error) => {
+        // Oops, the mesh didn't load for some reason
+        console.error("Error loading mesh: " + error);
+        return null;
+    });
+
+    // End of LAB B
+
     // STEP 7: The car's wheels are stuck in the ground - we need to lift the car up so that it sits on the ground
     cart.position.y = 0.7;
 
@@ -169,14 +184,14 @@ const createScene = async function() {
 
     // STEP 13: Enable the WebXR experience, and walk around your scene using the provided VR headset
     // Check to see if WebXR (immersive-vr, specifically) is supported on this device
-    if (BABYLON.WebXRSessionManager.IsSessionSupportedAsync("immersive-vr")) {
-        const xr = await scene.createDefaultXRExperienceAsync({
-            floorMeshes: [ground],
-            optionalFeatures: true
-        });
-    } else {
-        console.log("WebXR is not supported on this device.");
-    }
+    // if (BABYLON.WebXRSessionManager.IsSessionSupportedAsync("immersive-vr")) {
+    //     const xr = await scene.createDefaultXRExperienceAsync({
+    //         floorMeshes: [ground],
+    //         optionalFeatures: true
+    //     });
+    // } else {
+    //     console.log("WebXR is not supported on this device.");
+    // }
 
     // Return the scene
     return scene;
