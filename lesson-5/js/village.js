@@ -107,6 +107,8 @@ const createScene = async function() {
         // wheelMesh.rotate.y = BABYLON.Tools.ToRadians(90);
         // Attach the wheel to the cart mesh (parent)
         wheelMesh.parent = cart;
+        // Position wheel with respect to centre of cart mesh
+        wheelMesh.position = new BABYLON.Vector3(0, -0.5, -0.5);
     }).catch((error) => {
         // Oops, the mesh didn't load for some reason
         console.error("Error loading mesh: " + error);
@@ -122,10 +124,27 @@ const createScene = async function() {
     // STEP6a: Go back to TinkerCAD and export another wheel, but change the color
     // STEP6b: Copy the code in STEP 4 and paste it below, change the the const name and filename to match the new wheel
     // STEP6c: Change the position of the wheel so that it is on the other side of the car
-    
+        const wheel2 = BABYLON.SceneLoader.ImportMeshAsync("", "./meshes/", "wheel2.glb").then((result) => {
+        // Do this stuff after the mesh has loaded
+        const wheelMesh = result.meshes[0];
+        // Grab the bouding box
+        const wheelBounds = result.meshes[1];
+        wheelBounds.showBoundingBox = true;
+        // wheelMesh.position = new BABYLON.Vector3(0, 0, 0);
+        wheelMesh.scaling = new BABYLON.Vector3(100, 100, 100);
+        // wheelMesh.rotate.y = BABYLON.Tools.ToRadians(90);
+        // Attach the wheel to the cart mesh (parent)
+        wheelMesh.parent = cart;
+        // Position wheel with respect to centre of cart mesh
+        wheelMesh.position = new BABYLON.Vector3(0, -0.5, 0.5);
+    }).catch((error) => {
+        // Oops, the mesh didn't load for some reason
+        console.error("Error loading mesh: " + error);
+        return null;
+    });
 
     // STEP 7: The car's wheels are stuck in the ground - we need to lift the car up so that it sits on the ground
-    
+    cart.position.y = 0.7;
 
     // STEP 8: Create a new animation object
     
