@@ -61,14 +61,18 @@ const createScene = async function() {
     /* SKY
     ---------------------------------------------------------------------------------------------------- */
     // STEP 7a: Add a skybox (see https://playground.babylonjs.com/#UU7RQ#91 to visualize how this works)
-    
+    const skybox = BABYLON.MeshBuilder.CreateBox("skybox", {size: 150}, scene);
     // STEP 7b: Apply the 6 images onto the skybox cube (look at the /textures/ directory)
-    
+    const skyboxMaterial = new BABYLON.StandardMaterial("skyboxMat", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("./textures/skybox", scene);
     // Thanks to Chad Wolfe's skybox bitmaps at https://opengameart.org/content/sky-box-sunny-day
     // STEP 7c: Make the skybox non-reflective
-    
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
     // STEP 7d: Set the skybox material property
-    
+    skybox.material = skyboxMaterial;
 
 
     /* HOUSES
