@@ -60,7 +60,7 @@ const createScene = async function() {
     const xr = await scene.createDefaultXRExperienceAsync({
         uiOptions: {
             sessionMode: "immersive-ar",
-            // STEP 2b: We need 0, 0, 0 to be a space on the floor, not between your eyes! There are several types of reference spaces: viewer, local, local-floor, bounded-floor, and unbounded (https://developer.mozilla.org/en-US/docs/Web/API/XRReferenceSpace)
+            // STEP 2b: We need 0, 0, 0 to be a space on the floor, not between your eyes! There are several types of reference spaces: viewer, local, local-floor, bounded-floor, and unbounded (https://develoxper.mozilla.org/en-US/docs/Web/API/XRReferenceSpace)
             referenceSpaceType: "local-floor"
         },
         // STEP 2c: Meta Quest requires these to be explicitly requested
@@ -73,34 +73,39 @@ const createScene = async function() {
     ---------------------------------------------------------------------------------------------------- */
     // STEP 5: A hit-test is a standard feature in AR that permits a ray to be cast from the device (headset or phone) into the real world, and detect where it intersects with a real-world object. This enables AR apps to place objects on surfaces or walls of the real world (https://immersive-web.github.io/hit-test/). To enable hit-testing, use the enableFeature() method of the featuresManager from the base WebXR experience helper.
     // STEP 5a: Create the features manager object
-    
+    const fm = xr.baseExperience.featuresManager;
     // STEP 5b: Enable the hit-test feature
-    
+    const hitTest = fm.enableFeature(BABYLON.WebXRHitTest, "latest");
 
     // STEP 6a: Create a marker to show where a hit-test has registered a surface
-     
+    const marker = BABYLON.MeshBuilder.CreateCylinder("marker", { diameter: 0.15, height: 0.01 }, scene);
 
     // STEP 6b: Initialize the Quaternion so the hit-test can control rotation in all dimensions
-    
+    marker.rotationQuaternion = new BABYLON.Quaternion();
     // STEP 6c: Make the marker invisible by default
-    
+    marker.isVisible = false;
     // STEP 6d: Colour the marker
-    
+    const markerMat = new BABYLON.StandardMaterial("markerMat", scene);
+    markerMat.diffuseColor = new BABYLON.Color3(0, 1, 0);
+    markerMat.alpha = 0.5;
+    marker.material = markerMat;
 
     // STEP 7a: Create a variable to store the latest hit-test results
-    
+    let lastHitTest;
     // STEP 7b: Add an event listener for the hit-test results
-    
+    hitTest.onHitTestResultObservable.add((results) => {
         // STEP 7c: If there is a successful hit-test, then make the marker visible
-        
-            
+        if (results.length) {
+            marker.isVisible = true;
             // STEP 7d: Grab the hit-test matrix of coordinates
-            
+            lastHitTest = results[0];
             // STEP 7e: Extract what we need so that the marker is oriented properly on the detected surface
-            
+            lastHitTest.transformationMatrix.decompose(undefined, marker.rotationQuaternion, marker.position);
+        } else {    
             // STEP 7f: Otherwise, marker is invisible
-        
-    
+            marker.isVisible = false;
+        }
+    });
 
     /* ANCHORS
     ---------------------------------------------------------------------------------------------------- */
