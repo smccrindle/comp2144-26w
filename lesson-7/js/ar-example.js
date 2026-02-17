@@ -40,9 +40,10 @@ const createScene = async function() {
     boxMat.diffuseColor = new BABYLON.Color3(1, 0.5, 0);
     box.material = boxMat;
     // STEP 4: Move the box so it is not at your feet
-    
+    box.position.x = 1;
+    box.position.z = 2;
     // STEP 4b: It is embedded in the floor - bring it up 0.25
-    
+    box.position.y = 0.25;
 
 
     /* SOUNDS
@@ -63,7 +64,7 @@ const createScene = async function() {
             referenceSpaceType: "local-floor"
         },
         // STEP 2c: Meta Quest requires these to be explicitly requested
-        
+        optionalFeatures: ["hit-test", "anchors"]
     });
     // STEP 3: Commit your code and push it to a server, then try it out with a headset - notice how the orange box is right at your feet - 0, 0, 0 is located on the floor at your feet
 
