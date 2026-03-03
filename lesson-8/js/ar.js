@@ -81,7 +81,7 @@ const createScene = async function() {
             BABYLON.ActionManager.OnPointerOverTrigger,
             box,
             "scaling",
-            new BABYLON.Vector(1.2, 1.2, 1.2),
+            new BABYLON.Vector3(1.2, 1.2, 1.2),
             250
         )
     );
