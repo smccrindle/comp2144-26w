@@ -40,7 +40,7 @@ const createScene = async function() {
     box.material = boxMat;
     box.position.z = 2;
     box.position.y = 0.5;
-    
+
     // The initial position of the box is 0, 0, 0 so with the referenceSpaceType: "unbounded" it will be located on the viewer's head, which is the origin point of the scene - reposition the box as you'd like
     // box.position.y = 0.5;
     // box.position.z = 0.5;
@@ -84,17 +84,22 @@ const createScene = async function() {
             BABYLON.ActionManager.OnPointerOverTrigger,
             box,
             "scaling",
-            new BABYLON.Vector3(1.2, 1.2, 1.2),
+            new BABYLON.Vector3(1.5, 1.5, 1.5),
             250
         )
     );
     // STEP 4a: Set up a "mouseout" effect - register another action with the registerAction() method
-    
+    box.actionManager.registerAction(
         // STEP 4b: Set up the action to animate the effect once again with InterpolateValueAction
-        
+        new BABYLON.InterpolateValueAction(
             // STEP 4c: Add a hover-out action with OnPointerOutTrigger, to scale the box back to its original size over a quarter of a second
-            
-
+            BABYLON.ActionManager.OnPointerOutTrigger,
+            box,
+            "scaling",
+            new BABYLON.Vector3(1, 1, 1),
+            250
+        )    
+    );
     // STEP 5a: Set up a "click" effect - register a third action
     
         //STEP 5b: Set up the action to change the color value
