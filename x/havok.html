@@ -29,6 +29,8 @@
             scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), hk);
 
             // --- 2. BASIC SCENE SETUP ---
+            const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 3, new BABYLON.Vector3(0, 1, 0), scene);
+            camera.attachControl(canvas, true);
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
             light.intensity = 0.7;
 
@@ -46,73 +48,87 @@
             let cubeAggregate;
             let floorDetected = false;
 
-            xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
-                cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
-                cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
+/* --- REPLACED INTERACTION BLOCK --- */
+const dragBehavior = new BABYLON.SixDofDragBehavior();
+dragBehavior.dragDeltaRatio = 1.0; 
 
-                cubeAggregate = new BABYLON.PhysicsAggregate(
-                    cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene
-                );
-                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-            });
+xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
+    cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+    cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
+    
+    cubeAggregate = new BABYLON.PhysicsAggregate(cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene);
+    
+    // START: PHYSICS OFF
+    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+    cube.addBehavior(dragBehavior);
+});
 
-            // --- CONTROLLER GRAB LOGIC ---
-            xr.input.onControllerAddedObservable.add((controller) => {
-                controller.onMotionControllerInitObservable.add((motionController) => {
-                    const squeeze = motionController.getComponentOfType("squeeze") || 
-                                    motionController.getComponent("xr-standard-squeeze");
-                    if (!squeeze) return;
+dragBehavior.onDragStartObservable.add(() => {
+    // During drag, physics is completely dormant
+    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+});
 
-                    squeeze.onButtonStateChangedObservable.add(() => {
-                        if (!cube) return;
+dragBehavior.onDragEndObservable.add(() => {
+    // 1. Move physics body to exact mesh position
+    cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+    // 2. Reset velocity so it doesn't carry drag momentum
+    cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+    // 3. Reactivate physics
+    if (floorDetected) {
+        cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+    }
+});
 
-                        if (squeeze.pressed) {
-                            // GRAB: Lock physics and parent to controller
-                            cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-                            cube.setParent(controller.grip);
-                        } else {
-                            // RELEASE: Unparent and hand back to physics
-                            cube.setParent(null);
-                            cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
-                            cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
-                            cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
-                            
-                            if (floorDetected) {
-                                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
-                            }
-                        }
-                    });
-                });
-            });
-
-            // --- PLANE DETECTION ---
             const fm = xr.baseExperience.featuresManager;
             const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
             const planeMeshes = {};
 
+            // Helper to build/update the physical mesh for a plane
             const setupPlanePhysics = (plane) => {
-                if (planeMeshes[plane.id]) planeMeshes[plane.id].dispose();
+                // 1. Clean up old mesh if it exists
+                if (planeMeshes[plane.id]) {
+                    planeMeshes[plane.id].dispose();
+                }
 
+                // 2. Build the visual polygon (Using your working logic)
                 plane.polygonDefinition.push(plane.polygonDefinition[0]);
                 const triangulation = new BABYLON.PolygonMeshBuilder("p-" + plane.id, plane.polygonDefinition.map(p => new BABYLON.Vector2(p.x, p.z)), scene);
                 const polygon = triangulation.build(false, 0.01);
                 
+                const mat = new BABYLON.StandardMaterial("pMat-" + plane.id, scene);
+                mat.alpha = 0.4;
+                mat.diffuseColor = BABYLON.Color3.Random();
+                polygon.material = mat;
+
+                // 3. Align the mesh to the real world
                 polygon.rotationQuaternion = new BABYLON.Quaternion();
                 plane.transformationMatrix.decompose(polygon.scaling, polygon.rotationQuaternion, polygon.position);
 
+                // 4. ATTACH PHYSICS (Mass 0 = static floor)
                 new BABYLON.PhysicsAggregate(polygon, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0.5 }, scene);
+                
                 planeMeshes[plane.id] = polygon;
             };
 
             xrPlanes.onPlaneAddedObservable.add(plane => {
                 setupPlanePhysics(plane);
-                floorDetected = true;
+                floorDetected = true; // Once we have a floor, the cube is allowed to fall
+            });
+            xrPlanes.onPlaneUpdatedObservable.add(plane => setupPlanePhysics(plane));
+            xrPlanes.onPlaneRemovedObservable.add(plane => {
+                if (planeMeshes[plane.id]) {
+                    planeMeshes[plane.id].dispose();
+                    delete planeMeshes[plane.id];
+                }
             });
 
             return scene;
         };
 
-        createScene().then((scene) => engine.runRenderLoop(() => scene.render()));
+
+        createScene().then((sceneToRender) => {
+            engine.runRenderLoop(() => sceneToRender.render());
+        });
         window.addEventListener("resize", () => engine.resize());
     </script>
 </body>
