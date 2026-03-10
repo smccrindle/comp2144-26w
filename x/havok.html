@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebXR: Physics & Plane Detection</title>
+    <script src="https://unpkg.com/earcut@2.2.4/dist/earcut.min.js"></script>
+    
+    <script src="https://cdn.babylonjs.com/havok/HavokPhysics_v1.1.3.js"></script>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+
+    <style>
+        body, html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+
+        const createScene = async function () {
+            const scene = new BABYLON.Scene(engine);
+
+            // --- 1. PHYSICS INITIALIZATION ---
+            const havokInstance = await HavokPhysics();
+            const hk = new BABYLON.HavokPlugin(true, havokInstance);
+            scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), hk);
+
+            // --- 2. BASIC SCENE SETUP ---
+            const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 3, new BABYLON.Vector3(0, 1, 0), scene);
+            camera.attachControl(canvas, true);
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+            light.intensity = 0.7;
+
+            // --- 3. THE INTERACTIVE RUBBER CUBE ---
+            const cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+            cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
+            const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
+            cubeMat.diffuseColor = new BABYLON.Color3(0.8, 0.1, 0.1);
+            cube.material = cubeMat;
+
+            // Give the cube physics properties
+            const cubeAggregate = new BABYLON.PhysicsAggregate(
+                cube, 
+                BABYLON.PhysicsShapeType.BOX, 
+                { mass: 1, restitution: 0.6, friction: 0.3 }, 
+                scene
+            );
+
+            // Add Grab Behavior
+            const drag = new BABYLON.SixDofDragBehavior();
+            cube.addBehavior(drag);
+
+            // Disable physics while holding, enable on release
+            drag.onDragStartObservable.add(() => {
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+            });
+            drag.onDragEndObservable.add(() => {
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+            });
+
+            // --- 4. WEBXR & PLANE DETECTION ---
+            const xr = await scene.createDefaultXRExperienceAsync({
+                uiOptions: {
+                    sessionMode: "immersive-ar",
+                    referenceSpaceType: "local-floor"
+                },
+                optionalFeatures: ["plane-detection"]
+            });
+
+            const fm = xr.baseExperience.featuresManager;
+            const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
+            const planeMeshes = {};
+
+            // Helper to build/update the physical mesh for a plane
+            const setupPlanePhysics = (plane) => {
+                // 1. Clean up old mesh if it exists
+                if (planeMeshes[plane.id]) {
+                    planeMeshes[plane.id].dispose();
+                }
+
+                // 2. Build the visual polygon (Using your working logic)
+                plane.polygonDefinition.push(plane.polygonDefinition[0]);
+                const triangulation = new BABYLON.PolygonMeshBuilder("p-" + plane.id, plane.polygonDefinition.map(p => new BABYLON.Vector2(p.x, p.z)), scene);
+                const polygon = triangulation.build(false, 0.01);
+                
+                const mat = new BABYLON.StandardMaterial("pMat-" + plane.id, scene);
+                mat.alpha = 0.4;
+                mat.diffuseColor = BABYLON.Color3.Random();
+                polygon.material = mat;
+
+                // 3. Align the mesh to the real world
+                polygon.rotationQuaternion = new BABYLON.Quaternion();
+                plane.transformationMatrix.decompose(polygon.scaling, polygon.rotationQuaternion, polygon.position);
+
+                // 4. ATTACH PHYSICS (Mass 0 = static floor)
+                new BABYLON.PhysicsAggregate(polygon, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0.5 }, scene);
+                
+                planeMeshes[plane.id] = polygon;
+            };
+
+            xrPlanes.onPlaneAddedObservable.add(plane => setupPlanePhysics(plane));
+            xrPlanes.onPlaneUpdatedObservable.add(plane => setupPlanePhysics(plane));
+            xrPlanes.onPlaneRemovedObservable.add(plane => {
+                if (planeMeshes[plane.id]) {
+                    planeMeshes[plane.id].dispose();
+                    delete planeMeshes[plane.id];
+                }
+            });
+
+            return scene;
+        };
+
+        createScene().then((scene) => {
+            engine.runRenderLoop(() => scene.render());
+        });
+
+        window.addEventListener("resize", () => engine.resize());
+    </script>
+</body>
+</html>
