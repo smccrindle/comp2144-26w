@@ -48,38 +48,41 @@
             let cubeAggregate;
             let floorDetected = false;
 
-            // 1. Ditch the SixDofDragBehavior for the controller
-            // 2. Instead, use an observer that updates position directly:
+            // We create the drag behavior OUTSIDE the session init to avoid duplication
+            const dragBehavior = new BABYLON.SixDofDragBehavior();
 
-            xr.input.onControllerAddedObservable.add((controller) => {
-                controller.onMotionControllerInitObservable.add((motionController) => {
-                    // --- ADD THIS CHECK ---
-                    const squeeze = motionController.getComponentOfType("squeeze") || 
-                                    motionController.getComponent("xr-standard-squeeze");
-                    
-                    if (!squeeze) return; 
+            xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
+                cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+                cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
 
-                    squeeze.onButtonStateChangedObservable.add(() => {
-                        if (squeeze.pressed) {
-                            // LOCK: Set to KINEMATIC, turn off physics interaction
-                            cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-                            cube.setParent(controller.grip);
-                        } else {
-                            // RELEASE: Unparent, reset velocity, re-enable DYNAMIC
-                            cube.setParent(null);
-                            
-                            // CRITICAL: Force coordinate sync before hand-off
-                            cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
-                            cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
-                            cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
-                            
-                            if (floorDetected) {
-                                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
-                            }
-                        }
-                    });
-                });
+                cubeAggregate = new BABYLON.PhysicsAggregate(
+                    cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene
+                );
+                
+                // Set to KINEMATIC immediately on spawn
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+                cube.addBehavior(dragBehavior);
             });
+
+            // Move the behavior logic OUTSIDE the session init
+            dragBehavior.onDragStartObservable.add(() => {
+                // KINEMATIC means: "Ignore physics, just follow the hand"
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+            });
+
+        dragBehavior.onDragEndObservable.add(() => {
+            // 1. Force the physics body to perfectly align with the visual mesh
+            cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+            
+            // 2. Clear all internal forces to prevent the "fly away"
+            cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+            cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+            
+            // 3. Re-enable physics only if floor is ready
+            if (floorDetected) {
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+            }
+        });
 
             const fm = xr.baseExperience.featuresManager;
             const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
