@@ -53,6 +53,10 @@
             const drag = new BABYLON.SixDofDragBehavior();
             cube.addBehavior(drag);
 
+            // FORCE KINEMATIC STATE ON START
+            // This prevents it from falling through the floor before you touch it.
+            cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+
             // Disable physics while holding, enable on release
             drag.onDragStartObservable.add(() => {
                 cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
