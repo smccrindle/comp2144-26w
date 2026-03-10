@@ -34,6 +34,15 @@
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
             light.intensity = 0.7;
 
+            // --- 4. WEBXR & PLANE DETECTION ---
+            const xr = await scene.createDefaultXRExperienceAsync({
+                uiOptions: {
+                    sessionMode: "immersive-ar",
+                    referenceSpaceType: "local-floor"
+                },
+                optionalFeatures: ["plane-detection"]
+            });
+
             // --- 3. THE INTERACTIVE RUBBER CUBE ---
             // Define the variable outside
             let cube;
@@ -71,14 +80,7 @@
                 });
             });
 
-            // --- 4. WEBXR & PLANE DETECTION ---
-            const xr = await scene.createDefaultXRExperienceAsync({
-                uiOptions: {
-                    sessionMode: "immersive-ar",
-                    referenceSpaceType: "local-floor"
-                },
-                optionalFeatures: ["plane-detection"]
-            });
+
 
             const fm = xr.baseExperience.featuresManager;
             const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
