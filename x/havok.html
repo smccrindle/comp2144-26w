@@ -35,34 +35,40 @@
             light.intensity = 0.7;
 
             // --- 3. THE INTERACTIVE RUBBER CUBE ---
-            const cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
-            cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
-            const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
-            cubeMat.diffuseColor = new BABYLON.Color3(0.8, 0.1, 0.1);
-            cube.material = cubeMat;
+            // Define the variable outside
+            let cube;
+            let cubeAggregate;
 
-            // Give the cube physics properties
-            const cubeAggregate = new BABYLON.PhysicsAggregate(
-                cube, 
-                BABYLON.PhysicsShapeType.BOX, 
-                { mass: 1, restitution: 0.6, friction: 0.3 }, 
-                scene
-            );
+            // Create the cube ONLY when the AR session starts
+            xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
+                // 1. Create the cube
+                cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+                cube.position = new BABYLON.Vector3(0, 1.5, 0); // Spawns in front of camera start
 
-            // Add Grab Behavior
-            const drag = new BABYLON.SixDofDragBehavior();
-            cube.addBehavior(drag);
+                const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
+                cubeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                cube.material = cubeMat;
 
-            // FORCE KINEMATIC STATE ON START
-            // This prevents it from falling through the floor before you touch it.
-            cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-
-            // Disable physics while holding, enable on release
-            drag.onDragStartObservable.add(() => {
+                // 2. Initialize Physics (Start as KINEMATIC so it doesn't fall)
+                cubeAggregate = new BABYLON.PhysicsAggregate(
+                    cube, 
+                    BABYLON.PhysicsShapeType.BOX, 
+                    { mass: 1, restitution: 0.6, friction: 0.2 }, 
+                    scene
+                );
                 cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-            });
-            drag.onDragEndObservable.add(() => {
-                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+
+                // 3. Re-attach Drag Behavior
+                const dragBehavior = new BABYLON.SixDofDragBehavior();
+                cube.addBehavior(dragBehavior);
+
+                dragBehavior.onDragStartObservable.add(() => {
+                    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+                });
+
+                dragBehavior.onDragEndObservable.add(() => {
+                    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+                });
             });
 
             // --- 4. WEBXR & PLANE DETECTION ---
