@@ -65,7 +65,7 @@ const createScene = async function() {
 
     // Use the static .Name property of the class itself
     // featuresManager from the base webxr experience helper
-    const planeDetector = featuresManager.enableFeature(BABYLON.WebXRPlaneDetector, "latest");
+    const planeDetector = fm.enableFeature(BABYLON.WebXRPlaneDetector, "latest");
     // STEP 2: Listen for when a new plane is discovered
     planeDetector.onPlaneAddedObservable.add((plane) => {
         
