@@ -29,8 +29,6 @@
             scene.enablePhysics(new BABYLON.Vector3(0, -9.81, 0), hk);
 
             // --- 2. BASIC SCENE SETUP ---
-            const camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 2, Math.PI / 2.5, 3, new BABYLON.Vector3(0, 1, 0), scene);
-            camera.attachControl(canvas, true);
             const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
             light.intensity = 0.7;
 
@@ -48,9 +46,6 @@
             let cubeAggregate;
             let floorDetected = false;
 
-            // We create the drag behavior OUTSIDE the session init to avoid duplication
-            const dragBehavior = new BABYLON.SixDofDragBehavior();
-
             xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
                 cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
                 cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
@@ -58,82 +53,66 @@
                 cubeAggregate = new BABYLON.PhysicsAggregate(
                     cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene
                 );
-                
-                // Set to KINEMATIC immediately on spawn
-                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-                cube.addBehavior(dragBehavior);
-            });
-
-            // Move the behavior logic OUTSIDE the session init
-            dragBehavior.onDragStartObservable.add(() => {
-                // KINEMATIC means: "Ignore physics, just follow the hand"
                 cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
             });
 
-        dragBehavior.onDragEndObservable.add(() => {
-            // 1. Force the physics body to perfectly align with the visual mesh
-            cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
-            
-            // 2. Clear all internal forces to prevent the "fly away"
-            cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
-            cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
-            
-            // 3. Re-enable physics only if floor is ready
-            if (floorDetected) {
-                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
-            }
-        });
+            // --- CONTROLLER GRAB LOGIC ---
+            xr.input.onControllerAddedObservable.add((controller) => {
+                controller.onMotionControllerInitObservable.add((motionController) => {
+                    const squeeze = motionController.getComponentOfType("squeeze") || 
+                                    motionController.getComponent("xr-standard-squeeze");
+                    if (!squeeze) return;
 
+                    squeeze.onButtonStateChangedObservable.add(() => {
+                        if (!cube) return;
+
+                        if (squeeze.pressed) {
+                            // GRAB: Lock physics and parent to controller
+                            cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+                            cube.setParent(controller.grip);
+                        } else {
+                            // RELEASE: Unparent and hand back to physics
+                            cube.setParent(null);
+                            cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+                            cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+                            cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+                            
+                            if (floorDetected) {
+                                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+                            }
+                        }
+                    });
+                });
+            });
+
+            // --- PLANE DETECTION ---
             const fm = xr.baseExperience.featuresManager;
             const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
             const planeMeshes = {};
 
-            // Helper to build/update the physical mesh for a plane
             const setupPlanePhysics = (plane) => {
-                // 1. Clean up old mesh if it exists
-                if (planeMeshes[plane.id]) {
-                    planeMeshes[plane.id].dispose();
-                }
+                if (planeMeshes[plane.id]) planeMeshes[plane.id].dispose();
 
-                // 2. Build the visual polygon (Using your working logic)
                 plane.polygonDefinition.push(plane.polygonDefinition[0]);
                 const triangulation = new BABYLON.PolygonMeshBuilder("p-" + plane.id, plane.polygonDefinition.map(p => new BABYLON.Vector2(p.x, p.z)), scene);
                 const polygon = triangulation.build(false, 0.01);
                 
-                const mat = new BABYLON.StandardMaterial("pMat-" + plane.id, scene);
-                mat.alpha = 0.4;
-                mat.diffuseColor = BABYLON.Color3.Random();
-                polygon.material = mat;
-
-                // 3. Align the mesh to the real world
                 polygon.rotationQuaternion = new BABYLON.Quaternion();
                 plane.transformationMatrix.decompose(polygon.scaling, polygon.rotationQuaternion, polygon.position);
 
-                // 4. ATTACH PHYSICS (Mass 0 = static floor)
                 new BABYLON.PhysicsAggregate(polygon, BABYLON.PhysicsShapeType.MESH, { mass: 0, restitution: 0.5 }, scene);
-                
                 planeMeshes[plane.id] = polygon;
             };
 
             xrPlanes.onPlaneAddedObservable.add(plane => {
                 setupPlanePhysics(plane);
-                floorDetected = true; // Once we have a floor, the cube is allowed to fall
-            });
-            xrPlanes.onPlaneUpdatedObservable.add(plane => setupPlanePhysics(plane));
-            xrPlanes.onPlaneRemovedObservable.add(plane => {
-                if (planeMeshes[plane.id]) {
-                    planeMeshes[plane.id].dispose();
-                    delete planeMeshes[plane.id];
-                }
+                floorDetected = true;
             });
 
             return scene;
         };
 
-
-        createScene().then((sceneToRender) => {
-            engine.runRenderLoop(() => sceneToRender.render());
-        });
+        createScene().then((scene) => engine.runRenderLoop(() => scene.render()));
         window.addEventListener("resize", () => engine.resize());
     </script>
 </body>
