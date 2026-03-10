@@ -53,20 +53,22 @@
 
             xr.input.onControllerAddedObservable.add((controller) => {
                 controller.onMotionControllerInitObservable.add((motionController) => {
-                    // Trigger for grabbing (usually the "squeeze" or "trigger" button)
-                    const squeeze = motionController.getComponentOfType("squeeze");
+                    // --- ADD THIS CHECK ---
+                    const squeeze = motionController.getComponentOfType("squeeze") || 
+                                    motionController.getComponent("xr-standard-squeeze");
                     
+                    if (!squeeze) return; 
+
                     squeeze.onButtonStateChangedObservable.add(() => {
                         if (squeeze.pressed) {
                             // LOCK: Set to KINEMATIC, turn off physics interaction
                             cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-                            
-                            // Parent the cube to the controller pointer
-                            cube.parent = controller.grip;
-                            cube.position = BABYLON.Vector3.Zero(); 
+                            cube.setParent(controller.grip);
                         } else {
                             // RELEASE: Unparent, reset velocity, re-enable DYNAMIC
-                            cube.parent = null;
+                            cube.setParent(null);
+                            
+                            // CRITICAL: Force coordinate sync before hand-off
                             cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
                             cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
                             cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
