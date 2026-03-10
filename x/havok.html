@@ -115,9 +115,23 @@
             return scene;
         };
 
-        createScene().then((scene) => {
-            engine.runRenderLoop(() => scene.render());
-        });
+        /* THE BOOTSTRAPPER 
+        ---------------------------------------------------------------------------------------------------- */
+        const startApp = async () => {
+            // Check every 50ms to see if Havok has attached to the window yet
+            while (typeof HavokPhysics === "undefined") {
+                console.log("Waiting for Havok WASM to initialize...");
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            // Now that we KNOW it exists, run your createScene
+            createScene().then((sceneToRender) => {
+                engine.runRenderLoop(() => sceneToRender.render());
+            });
+        };
+
+        // Start the check
+        startApp();
 
         window.addEventListener("resize", () => engine.resize());
     </script>
