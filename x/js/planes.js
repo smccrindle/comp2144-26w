@@ -60,41 +60,61 @@ const createScene = async function() {
 
     /* PLANE DETECTION
     ---------------------------------------------------------------------------------------------------- */
-    // STEP 1: Enable the Plane Detector feature
     const fm = xr.baseExperience.featuresManager;
 
-    // Use the static .Name property of the class itself
-    // featuresManager from the base webxr experience helper
-    const planeDetector = fm.enableFeature(BABYLON.WebXRPlaneDetector, "latest");
-    // STEP 2: Listen for when a new plane is discovered
-    planeDetector.onPlaneAddedObservable.add((plane) => {
-        
-        // Each 'plane' object contains an 'xrPlane' property from the WebXR API
-        // We can filter by orientation: 'horizontal' or 'vertical'
-        if (plane.xrPlane.orientation === "horizontal") {
-            console.log("Floor or table detected");
-            visualizePlane(plane, new BABYLON.Color3(0, 1, 0)); // Green for horizontal
-        } else {
-            console.log("Wall detected");
-            visualizePlane(plane, new BABYLON.Color3(1, 0, 0)); // Red for vertical
-        }
+    const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
+
+    const planes = [];
+
+    xrPlanes.onPlaneAddedObservable.add(plane => {
+        plane.polygonDefinition.push(plane.polygonDefinition[0]);
+        var polygon_triangulation = new BABYLON.PolygonMeshBuilder("name", plane.polygonDefinition.map((p) => new BABYLON.Vector2(p.x, p.z)), scene);
+        var polygon = polygon_triangulation.build(false, 0.01);
+        plane.mesh = polygon; 
+        planes[plane.id] = (plane.mesh);
+        const mat = new BABYLON.StandardMaterial("mat", scene);
+        mat.alpha = 0.5;
+        // pick a random color
+        mat.diffuseColor = BABYLON.Color3.Random();
+        polygon.createNormals();
+        plane.mesh.material = mat;
+
+        plane.mesh.rotationQuaternion = new BABYLON.Quaternion();
+        plane.transformationMatrix.decompose(plane.mesh.scaling, plane.mesh.rotationQuaternion, plane.mesh.position);
     });
 
-    // STEP 3: Helper function to create a visual representation of the plane
-    function visualizePlane(plane, color) {
-        // BabylonJS automatically creates a mesh for the plane's polygon
-        const mesh = plane.polygonDefinition;
-        const material = new BABYLON.StandardMaterial("planeMat", scene);
-        material.diffuseColor = color;
-        material.alpha = 0.5; // Transparent so we can still see the real world
-        
-        mesh.material = material;
-        
-        // The mesh must stay attached to the plane's real-world transformation
-        plane.onADirtyObservable.add(() => {
-            // This ensures the mesh moves/rotates if the AR system updates the plane's position
-        });
-    }    
+    xrPlanes.onPlaneUpdatedObservable.add(plane => {
+        let mat;
+        if (plane.mesh) {
+            // keep the material, dispose the old polygon
+            mat = plane.mesh.material;
+            plane.mesh.dispose(false, false);
+        }
+        const some = plane.polygonDefinition.some(p => !p);
+        if (some) {
+            return;
+        }
+        plane.polygonDefinition.push(plane.polygonDefinition[0]);
+        var polygon_triangulation = new BABYLON.PolygonMeshBuilder("name", plane.polygonDefinition.map((p) => new BABYLON.Vector2(p.x, p.z)), scene);
+        var polygon = polygon_triangulation.build(false, 0.01);
+        polygon.createNormals();
+        plane.mesh = polygon;
+        planes[plane.id] = (plane.mesh);
+        plane.mesh.material = mat;
+        plane.mesh.rotationQuaternion = new BABYLON.Quaternion();
+        plane.transformationMatrix.decompose(plane.mesh.scaling, plane.mesh.rotationQuaternion, plane.mesh.position);
+    })
+
+    xrPlanes.onPlaneRemovedObservable.add(plane => {
+        if (plane && planes[plane.id]) {
+            planes[plane.id].dispose()
+        }
+    })
+
+    xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
+        planes.forEach(plane => plane.dispose());
+        while (planes.pop()) { };
+    });
 
 
     // Return the scene
