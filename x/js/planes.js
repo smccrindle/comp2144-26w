@@ -7,6 +7,11 @@ const createScene = async function() {
     // Create a new BABYLON scene, passing in the engine as an argument
     const scene = new BABYLON.Scene(engine);
     
+    // Booting up the Havok physics engine
+    const havokInstance = await HavokPhysics();
+    const hk = new BABYLON.HavokPlugin(true, havokInstance);
+    scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
+
 
     /* CAMERA
     ---------------------------------------------------------------------------------------------------- */
@@ -33,7 +38,34 @@ const createScene = async function() {
 
     /* MESHES
     ---------------------------------------------------------------------------------------------------- */
+    const cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.1 }, scene);
+    cube.position = new BABYLON.Vector3(0, 1.5, 0.5); // Start in front of the user
 
+    const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
+    cubeMat.diffuseColor = new BABYLON.Color3(1, 0, 0); // Red
+    cube.material = cubeMat;
+
+    // The cube has mass and it should behave according to the rules of physics
+    const cubeAggregate = new BABYLON.PhysicsAggregate(
+        cube, 
+        BABYLON.PhysicsShapeType.BOX, 
+        { mass: 1, restitution: 0.6, friction: 0.2 }, 
+        scene
+    );
+
+    // Cube is grabbable
+    const dragBehavior = new BABYLON.SixDofDragBehavior();
+    cube.addBehavior(dragBehavior);
+
+    // When grabbed: Turn off gravity so it follows the hand
+    dragBehavior.onDragStartObservable.add(() => {
+        cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+    });
+
+    // When released: Turn gravity back on
+    dragBehavior.onDragEndObservable.add(() => {
+        cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+    });
 
     /* SOUNDS
     ---------------------------------------------------------------------------------------------------- */
@@ -81,6 +113,18 @@ const createScene = async function() {
 
         plane.mesh.rotationQuaternion = new BABYLON.Quaternion();
         plane.transformationMatrix.decompose(plane.mesh.scaling, plane.mesh.rotationQuaternion, plane.mesh.position);
+
+        // Each plane needs to respect the laws of physics, but they also need to have a mass of zero so they don't fall to the ground - they are surfaces after all
+        if (plane.mesh.physicsBody) {
+            plane.mesh.physicsBody.dispose(); // Clean up old physics if updating
+        }
+
+        new BABYLON.PhysicsAggregate(
+            plane.mesh, 
+            BABYLON.PhysicsShapeType.MESH, 
+            { mass: 0, restitution: 0.5 }, 
+            scene
+        );
     });
 
     xrPlanes.onPlaneUpdatedObservable.add(plane => {
@@ -103,6 +147,18 @@ const createScene = async function() {
         plane.mesh.material = mat;
         plane.mesh.rotationQuaternion = new BABYLON.Quaternion();
         plane.transformationMatrix.decompose(plane.mesh.scaling, plane.mesh.rotationQuaternion, plane.mesh.position);
+
+        // Each plane needs to respect the laws of physics, but they also need to have a mass of zero so they don't fall to the ground - they are surfaces after all
+        if (plane.mesh.physicsBody) {
+            plane.mesh.physicsBody.dispose(); // Clean up old physics if updating
+        }
+
+        new BABYLON.PhysicsAggregate(
+            plane.mesh, 
+            BABYLON.PhysicsShapeType.MESH, 
+            { mass: 0, restitution: 0.5 }, 
+            scene
+        );        
     })
 
     xrPlanes.onPlaneRemovedObservable.add(plane => {
