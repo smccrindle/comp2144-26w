@@ -68,22 +68,27 @@
                 );
                 cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
 
-                // 3. Re-attach Drag Behavior
                 const dragBehavior = new BABYLON.SixDofDragBehavior();
                 cube.addBehavior(dragBehavior);
 
                 dragBehavior.onDragStartObservable.add(() => {
+                    // Tell physics to stand down during the drag
                     cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
                 });
 
                 dragBehavior.onDragEndObservable.add(() => {
-                    // Only drop if the floor is ready
+                    // 1. Force the physics body to match the visual mesh perfectly
+                    cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+                    
+                    // 2. Clear any lingering velocity from the drag movement
+                    cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+                    cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+                    
+                    // 3. Re-enable gravity
                     if (floorDetected) {
                         cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
                     }
                 });
-            });
-
 
 
             const fm = xr.baseExperience.featuresManager;
