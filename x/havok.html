@@ -51,6 +51,8 @@
 /* --- REPLACED INTERACTION BLOCK --- */
 const dragBehavior = new BABYLON.SixDofDragBehavior();
 dragBehavior.dragDeltaRatio = 1.0; 
+// 2. Disable default inertia/damping to make it feel like "part of your hand"
+dragBehavior.useObjectOrientationForRotation = true;
 
 xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
     cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
