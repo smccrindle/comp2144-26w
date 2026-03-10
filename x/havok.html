@@ -44,51 +44,44 @@
             });
 
             // --- 3. THE INTERACTIVE RUBBER CUBE ---
-            // Define the variable outside
             let cube;
             let cubeAggregate;
-            let floorDetected = false; // Flag to track floor readiness
+            let floorDetected = false;
 
-            // Create the cube ONLY when the AR session starts
+            // We create the drag behavior OUTSIDE the session init to avoid duplication
+            const dragBehavior = new BABYLON.SixDofDragBehavior();
+
             xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
-                // 1. Create the cube
                 cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
-                cube.position = new BABYLON.Vector3(0, 1.5, 0); // Spawns in front of camera start
+                cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
 
-                const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
-                cubeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
-                cube.material = cubeMat;
-
-                // 2. Initialize Physics (Start as KINEMATIC so it doesn't fall)
                 cubeAggregate = new BABYLON.PhysicsAggregate(
-                    cube, 
-                    BABYLON.PhysicsShapeType.BOX, 
-                    { mass: 1, restitution: 0.6, friction: 0.2 }, 
-                    scene
+                    cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene
                 );
+                
+                // Set to KINEMATIC immediately on spawn
                 cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-
-                const dragBehavior = new BABYLON.SixDofDragBehavior();
                 cube.addBehavior(dragBehavior);
+            });
 
-                dragBehavior.onDragStartObservable.add(() => {
-                    // Tell physics to stand down during the drag
-                    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-                });
+            // Move the behavior logic OUTSIDE the session init
+            dragBehavior.onDragStartObservable.add(() => {
+                // KINEMATIC means: "Ignore physics, just follow the hand"
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+            });
 
-                dragBehavior.onDragEndObservable.add(() => {
-                    // 1. Force the physics body to match the visual mesh perfectly
-                    cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
-                    
-                    // 2. Clear any lingering velocity from the drag movement
-                    cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
-                    cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
-                    
-                    // 3. Re-enable gravity
-                    if (floorDetected) {
-                        cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
-                    }
-                });
+            dragBehavior.onDragEndObservable.add(() => {
+                // 1. Force the physics body to perfectly align with the visual mesh
+                cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+                
+                // 2. Clear all internal forces to prevent the "fly away"
+                cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+                cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
+                
+                // 3. Re-enable physics only if floor is ready
+                if (floorDetected) {
+                    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+                }
             });
 
             const fm = xr.baseExperience.featuresManager;
