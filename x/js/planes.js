@@ -96,6 +96,32 @@ const createScene = async function() {
         });
     }    
 
+    /* FAKE CONSOLE
+    ------------------------------------------------------------------------------ */
+    const plane = BABYLON.MeshBuilder.CreatePlane("debugPlane", { width: 1, height: 0.5 }, scene);
+    plane.position = new BABYLON.Vector3(0, 1.5, 2); // Floating 2 meters in front
+    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateForMesh(plane);
+    const textBlock = new BABYLON.GUI.TextBlock();
+    textBlock.text = "System Initializing...";
+    textBlock.color = "white";
+    textBlock.fontSize = 24;
+    advancedTexture.addControl(textBlock);
+
+    // Helper function to "log" to the 3D world
+    function xrLog(msg) {
+        textBlock.text = msg;
+        console.log(msg); // Still logs to the invisible browser console
+    }
+
+    // Now use it to check your features
+    xr.baseExperience.onStateChangedObservable.add((state) => {
+        if (state === BABYLON.WebXRState.IN_XR) {
+            const fm = xr.baseExperience.featuresManager;
+            const planesEnabled = fm.getEnabledFeature(BABYLON.WebXRPlaneDetector.Name);
+            xrLog(planesEnabled ? "Planes: ACTIVE" : "Planes: FAILED TO LOAD");
+        }
+    });
+
 
     // Return the scene
     return scene;
