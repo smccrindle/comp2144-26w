@@ -73,6 +73,7 @@
                 cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
                 // 2. Reset velocity so it doesn't carry drag momentum
                 cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+                cubeAggregate.body.setAngularVelocity(BABYLON.Vector3.Zero());
                 // 3. Reactivate physics
                 if (floorDetected) {
                     cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
