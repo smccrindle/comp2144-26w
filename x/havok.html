@@ -48,38 +48,36 @@
             let cubeAggregate;
             let floorDetected = false;
 
-/* --- REPLACED INTERACTION BLOCK --- */
-const dragBehavior = new BABYLON.SixDofDragBehavior();
-dragBehavior.dragDeltaRatio = 1.0; 
-// 2. Disable default inertia/damping to make it feel like "part of your hand"
-dragBehavior.useObjectOrientationForRotation = true;
+            /* --- REPLACED INTERACTION BLOCK --- */
+            const dragBehavior = new BABYLON.SixDofDragBehavior();
+            dragBehavior.dragDeltaRatio = 1.0; 
 
-xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
-    cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
-    cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
-    
-    cubeAggregate = new BABYLON.PhysicsAggregate(cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene);
-    
-    // START: PHYSICS OFF
-    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-    cube.addBehavior(dragBehavior);
-});
+            xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
+                cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+                cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
+                
+                cubeAggregate = new BABYLON.PhysicsAggregate(cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene);
+                
+                // START: PHYSICS OFF
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+                cube.addBehavior(dragBehavior);
+            });
 
-dragBehavior.onDragStartObservable.add(() => {
-    // During drag, physics is completely dormant
-    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
-});
+            dragBehavior.onDragStartObservable.add(() => {
+                // During drag, physics is completely dormant
+                cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.KINEMATIC);
+            });
 
-dragBehavior.onDragEndObservable.add(() => {
-    // 1. Move physics body to exact mesh position
-    cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
-    // 2. Reset velocity so it doesn't carry drag momentum
-    cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
-    // 3. Reactivate physics
-    if (floorDetected) {
-        cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
-    }
-});
+            dragBehavior.onDragEndObservable.add(() => {
+                // 1. Move physics body to exact mesh position
+                cubeAggregate.body.setTargetTransform(cube.position, cube.rotationQuaternion);
+                // 2. Reset velocity so it doesn't carry drag momentum
+                cubeAggregate.body.setLinearVelocity(BABYLON.Vector3.Zero());
+                // 3. Reactivate physics
+                if (floorDetected) {
+                    cubeAggregate.body.setMotionType(BABYLON.PhysicsMotionType.DYNAMIC);
+                }
+            });
 
             const fm = xr.baseExperience.featuresManager;
             const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
