@@ -102,7 +102,8 @@
                 const polygon = triangulation.build(false, 0.01);
                 
                 const mat = new BABYLON.StandardMaterial("pMat-" + plane.id, scene);
-                mat.alpha = 0.4;
+                // mat.alpha = 0.4;
+                mat.alpha = 0;
                 mat.diffuseColor = BABYLON.Color3.Random();
                 polygon.material = mat;
 
