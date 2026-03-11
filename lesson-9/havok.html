@@ -57,6 +57,9 @@
             // STEP 6: When the WebXR session has initialized, create the interactive cube
             xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
                 cube = BABYLON.MeshBuilder.CreateBox("rubberCube", { size: 0.15 }, scene);
+                const cubeMat = new BABYLON.StandardMaterial("cubeMat", scene);
+                cubeMat.diffuseColor = new BABYLON.Color3(1, 0, 0);
+                cube.material = cubeMat;
                 cube.position = new BABYLON.Vector3(0, 1.5, 0.5);
                 // STEP 7: Add the cube to the physics engine
                 cubeAggregate = new BABYLON.PhysicsAggregate(cube, BABYLON.PhysicsShapeType.BOX, { mass: 1 }, scene);
@@ -102,8 +105,8 @@
                 const polygon = triangulation.build(false, 0.01);
                 
                 const mat = new BABYLON.StandardMaterial("pMat-" + plane.id, scene);
-                // mat.alpha = 0.4;
-                mat.alpha = 0;
+                mat.alpha = 0.4;
+                // mat.alpha = 0;
                 mat.diffuseColor = BABYLON.Color3.Random();
                 polygon.material = mat;
 
