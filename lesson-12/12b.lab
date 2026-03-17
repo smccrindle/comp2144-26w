@@ -1,0 +1,21 @@
+{
+  "name": "12b",
+  "data": "15;javascript&// STEP 1: Create an event handler to listen for collisions, and add an anonymous function to handle the event\nregisterEvent(EventType.onCollision, async () => {\n    // STEP 2: Stop the robot from rolling, set the main LED to red, and play an explosion animation\n    stopRoll();\n    setMainLed({\n        r: 255,\n        g: 0,\n        b: 0\n    });\n    await setDisplayImage(DisplayImage.Explosion);\n    // STEP 3a: Make the robot say, \"Collision\", create a variable for a random heading, then set the heading\n    await speak(\"I crashed!\", true);\n    let newHeading = getHeading() + 180;\n    await spin(newHeading, 0.5);\n    // STEP 3b: Wait for half a second, set the main LED to white, and roll again\n    await delay(0.5);\n    setMainLed(getRandomColor());\n    setSpeed(255);\n});\n// STEP 4: Run the program and see how the robot reacts to collisions\nasync function startProgram() {\n    setMainLed({\n        \n    })\n}",
+  "program_type": "text",
+  "robots": [
+    {
+      "type": "BOLT+",
+      "name": "BOLT+",
+      "alias": "BOLTPLUS",
+      "id": 19,
+      "prefix": "BP-",
+      "slug": "bolt-plus",
+      "category": null,
+      "icon": null,
+      "link": null,
+      "svg": "#svgs-product-bolt+"
+    }
+  ],
+  "modified_date": "2026-03-17T21:00:28.645Z",
+  "identifier": "19587801"
+}

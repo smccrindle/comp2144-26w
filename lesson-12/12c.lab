@@ -1,0 +1,21 @@
+{
+  "name": "12c",
+  "data": "15;javascript&async function startProgram() {\n    let currentHeading = 0;\n    // Drive the robot in a complete circle, using 12 straight line segments and changing the direction 30 degrees with each iteration of the below loop\n    while (currentHeading < 360) {\n        // STEP 1a: declare a local variable named newLedColor, and initialize it by calling the function getRgbColorFromHue()\n        let newLedColor = getRgbColorFromHue(currentHeading);\n        // let newLedColor = { r: 100, g: 100, b: 100 };\n        // STEP 1b: pass the currentHeading variable into the function call above as an argument\n        await scrollMatrixText(currentHeading.toString(), newLedColor, 24, false);\n        await setMainLed(newLedColor);\n        await roll(currentHeading, 50, 1);\n        currentHeading += 30;\n    }\n    await setDisplayImage(\"star-struck\");\n}\n\n// Function to convert the heading (0-360 degrees) to a color, based on a color wheel\n// STEP 2: Add a parameter called hueDegrees to the below function\nfunction getRgbColorFromHue(hueDegrees) {\n    // Calculate raw RGB values using the cosine formula\n    let red = 256 * Math.cos(degreesToRadians(hueDegrees));\n    let green = 256 * Math.cos(degreesToRadians(hueDegrees) + 120);\n    let blue = 256 * Math.cos(degreesToRadians(hueDegrees) - 120);\n    // Clamp values to the 0-255 range and round to the nearest integer\n    red = Math.round(Math.max(0, Math.min(255, red)));\n    green = Math.round(Math.max(0, Math.min(255, green)));\n    blue = Math.round(Math.max(0, Math.min(255, blue)));\n    // STEP 3: Return the RGB values as a JavaScript object\n    return { r: red, g: green, b: blue };\n}\n// Helper function used to convert degrees to radians, as Math.cos expects radians\nfunction degreesToRadians(degrees) {\n    let radianConversion = degrees * (Math.PI / 180);\n    return radianConversion;\n}\n// STEP 4: Try it out! What customizations can you make to this program?",
+  "program_type": "text",
+  "robots": [
+    {
+      "type": "BOLT+",
+      "name": "BOLT+",
+      "alias": "BOLTPLUS",
+      "id": 19,
+      "prefix": "BP-",
+      "slug": "bolt-plus",
+      "category": null,
+      "icon": null,
+      "link": null,
+      "svg": "#svgs-product-bolt+"
+    }
+  ],
+  "modified_date": "2026-03-17T21:00:49.035Z",
+  "identifier": "19587868"
+}

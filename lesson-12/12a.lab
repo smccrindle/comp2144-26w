@@ -1,0 +1,21 @@
+{
+  "name": "12a",
+  "data": "15;javascript&// STEP 1: Create the main program asynchronous function\nasync function startProgram() {\n    // STEP 2: Instruct the main LED light with rgb (using object notation)\n    setMainLed({ r: 0, g: 255, b: 150});\n    // STEP 3: Text-to-speech\n    await speak(\"Starting the lesson program sequence.\", false);\n    // STEP 4: Wait for a short period of time\n    await delay(1);\n    // STEP 5: Construct a loop that will iterate 4 times\n    for (let i = 0; i < 4; i++) {\n        // STEP 6: Set the main LED light to a random color\n        setMainLed(getRandomColor());\n        // STEP 7: Play a fun random sound\n        // Note: Bolt+ supports a wide variety of library sounds\n        await Sound.Game.Coin.play(true);\n        // STEP 8: Use the LCD display screen\n        // This shows the current loop iteration on the Bolt+ screen\n        await setDisplayText(\"Go!\", { r: 0, g: 0, b: 0}, { r: 255, g: 255, b: 255}, 1);\n        // STEP 9: Turn 90 degrees, then roll at speed 0-255, for 1 second\n        // We multiply 90 by i to make it turn in a square pattern\n        await roll(90 * i, 100, 1);\n        // STEP 10: Announce the current navigational heading in degrees\n        await speak(\"Heading is \" + getHeading() + \" degrees\", true);\n        // STEP 11: Take a one second break\n        await delay(1);\n    }\n    // STEP 12: Say how far the robot has travelled (in cm)\n    await speak(\"Total distance travelled is \" + getDistance() + \" centimeters\", true);\n}",
+  "program_type": "text",
+  "robots": [
+    {
+      "type": "BOLT+",
+      "name": "BOLT+",
+      "alias": "BOLTPLUS",
+      "id": 19,
+      "prefix": "BP-",
+      "slug": "bolt-plus",
+      "category": null,
+      "icon": null,
+      "link": null,
+      "svg": "#svgs-product-bolt+"
+    }
+  ],
+  "modified_date": "2026-03-17T19:59:49.978Z",
+  "identifier": "19587632"
+}
